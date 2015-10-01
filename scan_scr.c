@@ -34,16 +34,16 @@ FILE *fp;
  */
 
 static void doRecord(struct scan_entry *cur, double tt){
-		fprintf(fp, "%f, %s, %s, %s, %f, %d, %3.0f, %.0f dBm, %f\n",
+		fprintf(fp, "%f,\t %s,\t %s,\t %f,\t %.0d,\t %.0f,       \t %s\n",
                                 tt,
                                 ether_addr(&cur->ap_addr),
-                                cur->essid,
                                 iw_opmode(cur->mode),
                                 cur->freq,
                                 cur->chan,
-				1E2 * cur->qual.qual / sr.range.max_qual.qual,
+	//			1E2 * cur->qual.qual / sr.range.max_qual.qual,
                                 cur->dbm.signal,
-                                cur->dbm.noise);
+            //                    cur->dbm.noise,
+                                cur->essid);
 
 } 
 static void fmt_scan_entry(struct scan_entry *cur, char buf[], size_t buflen)
@@ -196,15 +196,22 @@ done:
 void scr_aplst_init(void)
 {
 
-	struct tm *tm;
-	time_t t;
-	char str_time[100];
+        char str_time[100];
+	time_t now = time(NULL);
+	struct tm *t = localtime(&now);
+	char text[16];
 
-	t = time(NULL);
-	tm = localtime(&t);
-        strftime(str_time, sizeof(str_time), "WaveMon_Log_%H:%M:%S.log", tm);
+	sprintf(text, "%04d-%02d-%02d_%02d%02d", 
+            t->tm_year + 1900, 
+            t->tm_mon+1, 
+            t->tm_mday, 
+            t->tm_hour,
+            t->tm_min);
+	sprintf(str_time, "WaveMon_Log_%s.log", text);
 
         fp = fopen(str_time,"w");
+        fprintf(fp,"WaveMon Log - %s\n",text);
+        fprintf(fp,"Time (sec),\t\t Eth Address,\t\t Mode,\t\t Freq (Hz),\t\t Chan,\t Signal (dBm),\t ESSID\n");
 	w_aplst = newwin_title(0, WAV_HEIGHT, "Scan window", false);
 
 	/* Gathering scan data can take seconds. Inform user. */
