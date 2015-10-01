@@ -32,18 +32,8 @@ FILE *fp;
  * @buf: buffer to put results into
  * @buflen: length of @buf
  */
-static void fmt_scan_entry(struct scan_entry *cur, char buf[], size_t buflen)
-{
-	size_t len = 0;
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        double tt = now.tv_sec + now.tv_usec/1000000.0;
 
-	if (!(cur->qual.updated & (IW_QUAL_QUAL_INVALID|IW_QUAL_LEVEL_INVALID))){
-		len += snprintf(buf + len, buflen - len, "%3.0f%%, %.0f dBm1",
-				1E2 * cur->qual.qual / sr.range.max_qual.qual,
-				cur->dbm.signal);
-        
+static void doRecord(struct scan_entry *cur, double tt){
 		fprintf(fp, "%f, %s, %s, %s, %f, %d, %3.0f, %.0f dBm, %f\n",
                                 tt,
                                 ether_addr(&cur->ap_addr),
@@ -54,15 +44,29 @@ static void fmt_scan_entry(struct scan_entry *cur, char buf[], size_t buflen)
 				1E2 * cur->qual.qual / sr.range.max_qual.qual,
                                 cur->dbm.signal,
                                 cur->dbm.noise);
+
+} 
+static void fmt_scan_entry(struct scan_entry *cur, char buf[], size_t buflen)
+{
+	size_t len = 0;
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        double tt = now.tv_sec + now.tv_usec/1000000.0;
+        doRecord(cur,tt); 
+
+	if (!(cur->qual.updated & (IW_QUAL_QUAL_INVALID|IW_QUAL_LEVEL_INVALID))){
+		len += snprintf(buf + len, buflen - len, "%3.0f%%, %.0f dBm",
+				1E2 * cur->qual.qual / sr.range.max_qual.qual,
+				cur->dbm.signal);
         }
 	else if (!(cur->qual.updated & IW_QUAL_QUAL_INVALID))
 		len += snprintf(buf + len, buflen - len, "%2d/%d",
 				cur->qual.qual, sr.range.max_qual.qual);
 	else if (!(cur->qual.updated & IW_QUAL_LEVEL_INVALID))
-		len += snprintf(buf + len, buflen - len, "%.0f dBm2",
+		len += snprintf(buf + len, buflen - len, "%.0f dBm",
 				cur->dbm.signal);
 	else
-		len += snprintf(buf + len, buflen - len, "? dBm3");
+		len += snprintf(buf + len, buflen - len, "? dBm");
 
 	if (cur->freq < 1e3)
 		len += snprintf(buf + len, buflen - len, ", Chan %2.0f",
@@ -191,7 +195,16 @@ done:
 
 void scr_aplst_init(void)
 {
-        fp = fopen("danTmp.txt","w");
+
+	struct tm *tm;
+	time_t t;
+	char str_time[100];
+
+	t = time(NULL);
+	tm = localtime(&t);
+        strftime(str_time, sizeof(str_time), "WaveMon_Log_%H:%M:%S.log", tm);
+
+        fp = fopen(str_time,"w");
 	w_aplst = newwin_title(0, WAV_HEIGHT, "Scan window", false);
 
 	/* Gathering scan data can take seconds. Inform user. */
