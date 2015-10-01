@@ -30,6 +30,8 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/wireless.h>
+#include <stdio.h>
+#include <time.h>
 
 /* Definitions that appeared in more recent versions of wireless.h */
 #ifndef IW_POWER_SAVING

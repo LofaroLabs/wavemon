@@ -25,7 +25,7 @@
 static struct scan_result sr;
 static pthread_t scan_thread;
 static WINDOW *w_aplst;
-
+FILE *fp;
 /**
  * Sanitize and format single scan entry as a string.
  * @cur: entry to format
@@ -35,19 +35,34 @@ static WINDOW *w_aplst;
 static void fmt_scan_entry(struct scan_entry *cur, char buf[], size_t buflen)
 {
 	size_t len = 0;
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        double tt = now.tv_sec + now.tv_usec/1000000.0;
 
-	if (!(cur->qual.updated & (IW_QUAL_QUAL_INVALID|IW_QUAL_LEVEL_INVALID)))
-		len += snprintf(buf + len, buflen - len, "%3.0f%%, %.0f dBm",
+	if (!(cur->qual.updated & (IW_QUAL_QUAL_INVALID|IW_QUAL_LEVEL_INVALID))){
+		len += snprintf(buf + len, buflen - len, "%3.0f%%, %.0f dBm1",
 				1E2 * cur->qual.qual / sr.range.max_qual.qual,
 				cur->dbm.signal);
+        
+		fprintf(fp, "%f, %s, %s, %s, %f, %d, %3.0f, %.0f dBm, %f\n",
+                                tt,
+                                ether_addr(&cur->ap_addr),
+                                cur->essid,
+                                iw_opmode(cur->mode),
+                                cur->freq,
+                                cur->chan,
+				1E2 * cur->qual.qual / sr.range.max_qual.qual,
+                                cur->dbm.signal,
+                                cur->dbm.noise);
+        }
 	else if (!(cur->qual.updated & IW_QUAL_QUAL_INVALID))
 		len += snprintf(buf + len, buflen - len, "%2d/%d",
 				cur->qual.qual, sr.range.max_qual.qual);
 	else if (!(cur->qual.updated & IW_QUAL_LEVEL_INVALID))
-		len += snprintf(buf + len, buflen - len, "%.0f dBm",
+		len += snprintf(buf + len, buflen - len, "%.0f dBm2",
 				cur->dbm.signal);
 	else
-		len += snprintf(buf + len, buflen - len, "? dBm");
+		len += snprintf(buf + len, buflen - len, "? dBm3");
 
 	if (cur->freq < 1e3)
 		len += snprintf(buf + len, buflen - len, ", Chan %2.0f",
@@ -176,6 +191,7 @@ done:
 
 void scr_aplst_init(void)
 {
+        fp = fopen("danTmp.txt","w");
 	w_aplst = newwin_title(0, WAV_HEIGHT, "Scan window", false);
 
 	/* Gathering scan data can take seconds. Inform user. */
